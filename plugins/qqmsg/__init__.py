@@ -15,7 +15,7 @@ class QqMsg(_PluginBase):
     # 插件描述
     plugin_desc = "支持使用QQ发送消息通知。"
     # 插件图标
-    plugin_icon = "iyuu.png"
+    plugin_icon = "qq.png"
     # 主题色
     plugin_color = "#00ffff"
     # 插件版本
