@@ -17,9 +17,9 @@ class QqMsg(_PluginBase):
     # 插件图标
     plugin_icon = "https://qzonestyle.gtimg.cn/qzone/qzact/act/external/tiqq/logo.png"
     # 主题色
-    plugin_color = "#00ffff"
+    plugin_color = "#fdfffd"
     # 插件版本
-    plugin_version = "0.1"
+    plugin_version = "0.2"
     # 插件作者
     plugin_author = "anjoyli"
     # 作者主页
@@ -35,14 +35,43 @@ class QqMsg(_PluginBase):
     _enabled = False
     _token = None
     _msgtypes = []
-    ## qq对应的api
-    _send_msg_url = "http://192.168.6.189:13579/LittlePaimon/api/message2admin"
+    _send_type = None
+    # qq对应的api
+    _send_msg_url = ""
+    # qq号
+    _qq_number = None
+    # 发送一次测试消息
+    _testonce = False
 
     def init_plugin(self, config: dict = None):
+        logger.info(f"初始化插件 {self.plugin_name}")
         if config:
             self._enabled = config.get("enabled")
+            self._send_type = config.get("send_type")
+            self._send_msg_url = config.get("msg_url")
+            self._qq_number = config.get("qq_number")
             self._token = config.get("token")
+            self._testonce = config.get("testonce")
             self._msgtypes = config.get("msgtypes") or []
+        
+        if not self._send_msg_url or not self._qq_number:
+            self._enabled = False
+
+        if self._testonce and self._enabled:
+            logger.info(f"发送qq测试消息")
+            self.send_msg_to_qq(title="测试消息", text="内容", user="tester")
+            self._testonce = False
+
+            self.update_config({
+                "testonce": False,
+                "enabled": self._enabled,
+                "send_type": self._send_type,
+                "msg_url": self._send_msg_url,
+                "qq_number": self._qq_number,
+                "token": self._token,
+                "msgtypes": self._msgtypes or []
+            })
+
 
     def get_state(self) -> bool:
         return self._enabled and (True if self._token else False)
@@ -87,7 +116,23 @@ class QqMsg(_PluginBase):
                                         }
                                     }
                                 ]
-                            }
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 6
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VSwitch',
+                                        'props': {
+                                            'model': 'testonce',
+                                            'label': '测试消息发送',
+                                        }
+                                    }
+                                ]
+                            },
                         ]
                     },
                     {
@@ -96,7 +141,68 @@ class QqMsg(_PluginBase):
                             {
                                 'component': 'VCol',
                                 'props': {
-                                    'cols': 12
+                                    'cols': 12,
+                                    'md': 8
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VTextField',
+                                        'props': {
+                                            'model': 'msg_url',
+                                            'label': '消息发送地址',
+                                            'placeholder': 'http://{ip}:{port}',
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 4
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VSelect',
+                                        'props': {
+                                            'model': 'send_type',
+                                            'label': '消息发送方式',
+                                            'items': [
+                                                {'title': 'Http正向私聊', 'value': 'send_private_msg'},
+                                                {'title': 'Http正向群聊', 'value': 'send_group_msg'},
+                                                {'title': 'bot内fastapi', 'value': 'send_fastapi_msg'},
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                        ]
+                    },
+                    {
+                        'component': 'VRow',
+                        'content': [
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 6
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VTextField',
+                                        'props': {
+                                            'model': 'qq_number',
+                                            'label': '私聊账号/群号',
+                                            'placeholder': 'qq号/群号',
+                                        }
+                                    }
+                                ]
+                            },
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                    'md': 6
                                 },
                                 'content': [
                                     {
@@ -104,7 +210,7 @@ class QqMsg(_PluginBase):
                                         'props': {
                                             'model': 'token',
                                             'label': 'QQ令牌',
-                                            'placeholder': 'QQxxx',
+                                            'placeholder': 'http access_token',
                                         }
                                     }
                                 ]
@@ -183,32 +289,60 @@ class QqMsg(_PluginBase):
             state, res = self.send_msg_to_qq(title=title,
                                         text=text,
                                         image=""if image == None else image,
-                                        user_id="Anjoy")
+                                        user="Anjoy")
         except Exception as msg_e:
             logger.error(f"QQ消息发送失败，{str(msg_e)}")
 
     
-    def send_msg_to_qq(self, title, text="", image="", user_id=""):
+    def send_msg_to_qq(self, title, text="", image="", user=""):
+        headers = {'content-type': 'application/x-www-form-urlencoded'}
         message_url = self._send_msg_url
-        if text:
-            conent = "%s\n%s" % (title, text.replace("\n\n", "\n"))
-        else:
-            conent = title
-        if not user_id:
-            user_id = "@Anjoy"
         req_json = {
-            "user_id": user_id,
+            "user_id": self._qq_number,
+        }
+        
+        content = "%s\n%s" % (title, text.replace("\n\n", "\n")) if text else title
+        data = {
+            "user": user,
             "title": title,
             "image": image,
-            "text": conent
+            "text": content
         }
-        return self.__post_request(message_url, req_json)
 
-    def __post_request(self, message_url, req_json):
+        if self._token:
+            headers['Authorization'] = f"Bearer {self._token}"
+
+        if self._send_type == "send_private_msg" or self._send_type == "send_group_msg":
+            return self.__post_request(f"{message_url}/{self._send_type}", headers, {**req_json, **{'message': f'''#{title}\n{content}'''}})
+        elif self._send_type == "send_fastapi_msg":
+            headers['content-type'] = 'application/json'
+            return self.__post_fastapi_request(f"{message_url}/send_fastapi_msg", headers, {**req_json, **data})
+  
+
+    def __post_request(self, message_url, headers, req_json):
         """
         向qq发送请求
         """
-        headers = {'content-type': 'application/json'}
+        try:
+            res = RequestUtils(headers=headers).post(message_url,
+                                                     data=urlencode(req_json))
+            if res and res.status_code == 200:
+                ret_json = res.json()
+                if ret_json.get('retcode') == 0:
+                    return True, ret_json.get('status')
+                else:
+                    return False, ret_json.get('status')
+            elif res is not None:
+                return False, f"错误码：{res.status_code}，错误原因：{res.reason}"
+            else:
+                return False, "未获取到返回信息"
+        except Exception as err:
+            return False, str(err)
+
+    def __post_fastapi_request(self, message_url, headers, req_json):
+        """
+        向qq发送请求
+        """
         try:
             res = RequestUtils(headers=headers).post(message_url,
                                                      data=json.dumps(req_json, ensure_ascii=False).encode('utf-8'))
