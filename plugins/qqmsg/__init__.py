@@ -1,6 +1,8 @@
 from urllib.parse import urlencode
 
 from app.plugins import _PluginBase
+from app.core.module import ModuleManager
+from app.helper.module import ModuleHelper
 from app.core.event import eventmanager, Event
 from app.schemas.types import EventType, NotificationType
 from app.utils.http import RequestUtils
@@ -13,13 +15,13 @@ class QqMsg(_PluginBase):
     # 插件名称
     plugin_name = "QQ消息通知"
     # 插件描述
-    plugin_desc = "支持使用QQ发送消息通知。"
+    plugin_desc = "支持使用QQ发送消息通知、交互。"
     # 插件图标
     plugin_icon = "https://qzonestyle.gtimg.cn/qzone/qzact/act/external/tiqq/logo.png"
     # 主题色
     plugin_color = "#fdfffd"
     # 插件版本
-    plugin_version = "0.2"
+    plugin_version = "1.0"
     # 插件作者
     plugin_author = "anjoyli"
     # 作者主页
@@ -31,6 +33,7 @@ class QqMsg(_PluginBase):
     # 可使用的用户级别
     auth_level = 1
 
+    modulemanager: ModuleManager = None
     # 私有属性
     _enabled = False
     _token = None
@@ -56,7 +59,16 @@ class QqMsg(_PluginBase):
         
         if not self._send_msg_url or not self._qq_number:
             self._enabled = False
-
+        
+        # send_fastapi_msg默认开启交互
+        if self._send_type == 'send_fastapi_msg':
+            if self.modulemanager:
+                if self.modulemanager.get_modules('message_parser') == []:
+                    self.register_module()
+            else:
+                self.modulemanager = ModuleManager()
+                self.register_module()
+        
         if self._testonce and self._enabled:
             logger.info(f"发送qq测试消息")
             self.send_msg_to_qq(title="测试消息", text="内容", user="tester")
@@ -71,6 +83,21 @@ class QqMsg(_PluginBase):
                 "token": self._token,
                 "msgtypes": self._msgtypes or []
             })
+
+    def register_module(self):
+        modules = ModuleHelper.load(
+            "app.plugins.qqmsg",
+            filter_func=lambda _, obj: hasattr(obj, 'init_module') and hasattr(obj, 'init_setting')
+        )
+        for module in modules:
+            module_id = module.__name__
+            self.modulemanager._modules[module_id] = module
+            # 生成实例
+            _module = module()
+            # 初始化模块
+            _module.init_module(url=f"{self._send_msg_url}/send_fastapi_msg",num=self._qq_number)
+            self.modulemanager._running_modules[module_id] = _module
+            logger.info(f"Moudle Loaded：{module_id}")
 
 
     def get_state(self) -> bool:
@@ -240,6 +267,27 @@ class QqMsg(_PluginBase):
                             }
                         ]
                     },
+                    {
+                        'component': 'VRow',
+                        'content': [
+                            {
+                                'component': 'VCol',
+                                'props': {
+                                    'cols': 12,
+                                },
+                                'content': [
+                                    {
+                                        'component': 'VAlert',
+                                        'props': {
+                                            'type': 'info',
+                                            'variant': 'tonal',
+                                            'text': '消息交互只适用send_fastapi_msg方式'
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
                 ]
             }
         ], {
@@ -250,6 +298,7 @@ class QqMsg(_PluginBase):
 
     def get_page(self) -> List[dict]:
         pass
+
 
     @eventmanager.register(EventType.NoticeMessage)
     def send(self, event: Event):
