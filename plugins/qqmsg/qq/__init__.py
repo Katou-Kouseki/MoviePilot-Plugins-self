@@ -13,7 +13,7 @@ class QQModule(_ModuleBase):
     qq: QQ = None
 
     def init_module(self, url, num) -> None:
-        self.qq = QQ(url,num)
+        self.qq = QQ(url=url,num=num)
 
     def stop(self):
         self.qq.stop()
@@ -35,7 +35,7 @@ class QQModule(_ModuleBase):
         """
         """
             {
-                'update_id': ,
+                'is_qq': ,
                 'message': {
                     'message_id': ,
                     'user_id': ,
@@ -51,10 +51,14 @@ class QQModule(_ModuleBase):
             return None
         try:
             message: dict = json.loads(body).get('message')
+            is_qq: dict = json.loads(body).get('is_qq')
             logger.info(message)
         except Exception as err:
             logger.debug(f"解析QQ消息失败：{str(err)}")
             return None
+        if not is_qq:
+            return None
+        
         if message:
             text = message.get("text")
             user_id = message.get("user_id")

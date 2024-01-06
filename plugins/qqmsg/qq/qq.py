@@ -30,9 +30,6 @@ class QQ(metaclass=Singleton):
         self._qq_number = num
 
     def __send_request(self, userid: str = None, image="", caption="",title= "") -> bool:
-        """
-        向Telegram发送报文
-        """
         headers = {'content-type': 'application/json'}
         message_url = self._ds_url
         req_json = {
@@ -45,15 +42,15 @@ class QQ(metaclass=Singleton):
             "image": image,
             "text": caption
         }
-        ret = RequestUtils(headers=headers).post(message_url,
-                                                     data=json.dumps({**req_json, **data}, ensure_ascii=False).encode('utf-8'))
-        logger.info(f"发送消息结果：{ret}")
+        if ret := RequestUtils(headers=headers).post(message_url,
+                                                     data=json.dumps({**req_json, **data}, ensure_ascii=False).encode('utf-8')):
+            logger.info(f"发送消息结果：[{ret.status_code}]")
 
         return True if ret and ret.status_code == 200 else False
     
     def send_msg(self, title: str, text: str = "", image: str = "", userid: str = "") -> Optional[bool]:
         """
-        发送Telegram消息
+        发送QQ消息
         :param title: 消息标题
         :param text: 消息内容
         :param image: 消息图片地址

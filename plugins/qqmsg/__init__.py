@@ -281,7 +281,7 @@ class QqMsg(_PluginBase):
                                         'props': {
                                             'type': 'info',
                                             'variant': 'tonal',
-                                            'text': '消息交互只适用send_fastapi_msg方式'
+                                            'text': '消息交互只适用send_fastapi_msg方式,使用说明https://homev6.anjoy.top/wordpress/2023/12/25/moviepilot/'
                                         }
                                     }
                                 ]
