@@ -70,7 +70,7 @@ class QQ(metaclass=Singleton):
             if userid:
                 chat_id = userid
             else:
-                chat_id = self._telegram_chat_id
+                chat_id = self._qq_number
 
             return self.__send_request(userid=chat_id, image=image, caption=caption,title=title)
 
@@ -105,7 +105,7 @@ class QQ(metaclass=Singleton):
             if userid:
                 chat_id = userid
             else:
-                chat_id = self._telegram_chat_id
+                chat_id = self._qq_number
             return self.__send_request(userid=chat_id, image=image, caption=caption,title=title)
 
         except Exception as msg_e:
@@ -142,7 +142,7 @@ class QQ(metaclass=Singleton):
             if userid:
                 chat_id = userid
             else:
-                chat_id = self._telegram_chat_id
+                chat_id = self._qq_number
 
             return self.__send_request(userid=chat_id, caption=caption,
                                        image=mediainfo.get_message_image(),title=title)
