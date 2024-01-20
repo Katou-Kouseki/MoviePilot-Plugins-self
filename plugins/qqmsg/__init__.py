@@ -348,6 +348,7 @@ class QqMsg(_PluginBase):
         message_url = self._send_msg_url
         req_json = {
             "user_id": self._qq_number,
+            "group_id": self._qq_number,
         }
         
         content = "%s\n%s" % (title, text.replace("\n\n", "\n")) if text else title
