@@ -34,6 +34,7 @@ class QQ(metaclass=Singleton):
         message_url = self._ds_url
         req_json = {
             "user_id": self._qq_number,
+            "group_id": self._qq_number,
         }
         
         data = {
