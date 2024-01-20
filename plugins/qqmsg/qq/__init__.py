@@ -25,7 +25,7 @@ class QQModule(_ModuleBase):
                        args: Any) -> Optional[CommingMessage]:
         """
         解析消息内容，返回字典，注意以下约定值：
-        userid: 用户ID
+        : 用户ID
         username: 用户名
         text: 内容
         :param body: 请求体
@@ -39,6 +39,7 @@ class QQModule(_ModuleBase):
                 'message': {
                     'message_id': ,
                     'user_id': ,
+                    'group_id': ,        
                     'user_name': ,  
                     'date': ,
                     'text': ''
@@ -62,12 +63,13 @@ class QQModule(_ModuleBase):
         if message:
             text = message.get("text")
             user_id = message.get("user_id")
+            group_id = message.get("group_id")
             # 获取用户名
             user_name = message.get("username")
             if text:
-                logger.info(f"收到QQ消息：userid={user_id}, username={user_name}, text={text}")
+                logger.info(f"收到QQ消息：userid={user_id}, groupid={group_id}, username={user_name}, text={text}")
                 return CommingMessage(channel=MessageChannel.Telegram,
-                                      userid=user_id, username=user_name, text=text)
+                                      userid=user_id, groupid=group_id, username=user_name, text=text)
         return None
 
     @checkMessage(MessageChannel.Telegram)
@@ -78,7 +80,7 @@ class QQModule(_ModuleBase):
         :return: 成功或失败
         """
         self.qq.send_msg(title=message.title, text=message.text,
-                               image=message.image, userid=message.userid)
+                               image=message.image, userid=message.userid, groupid=message.groupid)
 
     @checkMessage(MessageChannel.Telegram)
     def post_medias_message(self, message: Notification, medias: List[MediaInfo]) -> Optional[bool]:
@@ -89,7 +91,7 @@ class QQModule(_ModuleBase):
         :return: 成功或失败
         """
         return self.qq.send_meidas_msg(title=message.title, medias=medias,
-                                             userid=message.userid)
+                                             userid=message.userid, groupid=message.groupid)
 
     @checkMessage(MessageChannel.Telegram)
     def post_torrents_message(self, message: Notification, torrents: List[Context]) -> Optional[bool]:
@@ -99,7 +101,7 @@ class QQModule(_ModuleBase):
         :param torrents: 种子列表
         :return: 成功或失败
         """
-        return self.qq.send_torrents_msg(title=message.title, torrents=torrents, userid=message.userid)
+        return self.qq.send_torrents_msg(title=message.title, torrents=torrents, userid=message.userid, groupid=message.groupid)
 
     def register_commands(self, commands: Dict[str, dict]):
         """
